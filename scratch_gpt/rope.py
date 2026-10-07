@@ -4,11 +4,15 @@ Each (even, odd) pair of channels in a query/key head is rotated by an angle
 theta_i * position, theta_i = base^(-2i/d). Because rotations compose, the dot
 product q_m . k_n depends only on the relative offset (m - n).
 """
+
 import torch
 import torch.nn as nn
 
 
 class RotaryEmbedding(nn.Module):
+    cos: torch.Tensor
+    sin: torch.Tensor
+
     def __init__(self, head_dim: int, max_len: int, base: float = 10000.0):
         super().__init__()
         assert head_dim % 2 == 0, "head_dim must be even for RoPE"

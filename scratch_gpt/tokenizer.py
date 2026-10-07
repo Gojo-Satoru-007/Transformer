@@ -5,7 +5,9 @@ Vocabulary layout (vocab_size = 10_000 by default):
     ids 256..vocab_size-2     -> learned merges, in the order they were learned
     id  vocab_size-1          -> <|endoftext|>
 """
+
 import heapq
+from itertools import pairwise
 import json
 import re
 from collections import Counter, defaultdict
@@ -41,14 +43,16 @@ class BPETokenizer:
         self.vocab_size = vocab_size
         n_merges = vocab_size - 256 - 1  # minus the special token
         text = text.replace(EOT_TOKEN, "\n")
-        word_freq = Counter(m.group(0).encode("utf-8") for m in PRETOKENIZE.finditer(text))
+        word_freq = Counter(
+            m.group(0).encode("utf-8") for m in PRETOKENIZE.finditer(text)
+        )
         words = [list(w) for w in word_freq]
         freqs = list(word_freq.values())
 
         pair_counts = defaultdict(int)
         where = defaultdict(set)
         for i, w in enumerate(words):
-            for p in zip(w, w[1:]):
+            for p in pairwise(w):
                 pair_counts[p] += freqs[i]
                 where[p].add(i)
         heap = [(-c, p) for p, c in pair_counts.items()]
@@ -64,10 +68,10 @@ class BPETokenizer:
             changed = set()
             for i in list(where[best]):
                 w, f = words[i], freqs[i]
-                for p in zip(w, w[1:]):          # remove old pair contributions
+                for p in pairwise(w):  # remove old pair contributions
                     pair_counts[p] -= f
                     changed.add(p)
-                out, j = [], 0                    # apply the merge
+                out, j = [], 0  # apply the merge
                 while j < len(w):
                     if j < len(w) - 1 and (w[j], w[j + 1]) == best:
                         out.append(new_id)
@@ -76,7 +80,7 @@ class BPETokenizer:
                         out.append(w[j])
                         j += 1
                 words[i] = out
-                for p in zip(out, out[1:]):      # add new pair contributions
+                for p in pairwise(out):  # add new pair contributions
                     pair_counts[p] += f
                     where[p].add(i)
                     changed.add(p)
@@ -100,11 +104,11 @@ class BPETokenizer:
         ids = list(word)
         while len(ids) > 1:
             best, best_rank = None, None
-            for p in zip(ids, ids[1:]):
+            for p in pairwise(ids):
                 r = self.ranks.get(p)
                 if r is not None and (best_rank is None or r < best_rank):
                     best, best_rank = p, r
-            if best is None:
+            if best_rank is None or best is None:
                 break
             new_id, out, j = 256 + best_rank, [], 0
             while j < len(ids):
