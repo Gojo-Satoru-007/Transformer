@@ -10,7 +10,7 @@ import time
 import torch
 
 from scratch_gpt.data import load_bin
-from scratch_gpt.nplm import NPLM, NPLMConfig
+from nplm import NPLM, NPLMConfig
 from scratch_gpt.tokenizer import BPETokenizer
 
 ap = argparse.ArgumentParser()
